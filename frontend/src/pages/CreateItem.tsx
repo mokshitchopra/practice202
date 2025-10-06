@@ -13,11 +13,12 @@ import { createItem, uploadFile } from "@/lib/api";
 import { ItemCategory, ItemCondition } from "@/types";
 import { authStore } from "@/store/authStore";
 import { Link } from "react-router-dom";
+import ImageCropper from "@/components/ImageCropper";
 
 export default function CreateItem() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -30,6 +31,8 @@ export default function CreateItem() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: createItem,
@@ -67,13 +70,38 @@ export default function CreateItem() {
         toast.error("Please select an image file");
         return;
       }
-      setSelectedFile(file);
+
+      // Read file for cropping
+      console.log("Reading file for cropping...");
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        console.log("File read complete. Setting showCropper to true.");
+        setTempImageSrc(reader.result as string);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
+
+      // Reset input value so same file can be selected again if needed
+      e.target.value = "";
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    // Convert blob to file
+    const file = new File([croppedBlob], "item-image.jpg", { type: "image/jpeg" });
+    setSelectedFile(file);
+
+    // Create preview
+    const previewUrl = URL.createObjectURL(croppedBlob);
+    setImagePreview(previewUrl);
+
+    setShowCropper(false);
+    setTempImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setTempImageSrc(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,7 +163,7 @@ export default function CreateItem() {
       <Navbar />
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <h1 className="text-3xl font-bold text-foreground mb-8">Create New Listing</h1>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Item Details</CardTitle>
@@ -297,6 +325,13 @@ export default function CreateItem() {
           </CardContent>
         </Card>
       </main>
+
+      <ImageCropper
+        open={showCropper}
+        imageSrc={tempImageSrc}
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+      />
     </div>
   );
 }
