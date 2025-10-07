@@ -1,4 +1,4 @@
-import { UserLogin, UserCreate, Token, User } from '../types'
+import { UserLogin, UserCreate, Token, User, Item } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -60,5 +60,13 @@ export async function logout(): Promise<void> {
 
 export async function getCurrentUser(): Promise<User> {
   return apiRequest<User>('/api/auth/me')
+}
+
+export async function getItems(): Promise<Item[]> {
+  return apiRequest<Item[]>('/api/items/')
+}
+
+export async function getItem(itemId: number): Promise<Item> {
+  return apiRequest<Item>(`/api/items/${itemId}`)
 }
 

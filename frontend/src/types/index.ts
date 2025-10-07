@@ -57,3 +57,45 @@ export interface AuthState {
   isAuthenticated: boolean
 }
 
+export enum ItemCategory {
+  TEXTBOOKS = "textbooks",
+  ELECTRONICS = "electronics",
+  FURNITURE = "furniture",
+  CLOTHING = "clothing",
+  SPORTS_FITNESS = "sports_fitness",
+  OTHER = "other"
+}
+
+export enum ItemCondition {
+  NEW = "new",
+  LIKE_NEW = "like_new",
+  GOOD = "good",
+  FAIR = "fair",
+  POOR = "poor"
+}
+
+export enum ItemStatus {
+  AVAILABLE = "available",
+  SOLD = "sold",
+  RESERVED = "reserved",
+  INACTIVE = "inactive"
+}
+
+export interface Item {
+  id: number
+  title: string
+  description: string
+  price: number
+  condition: ItemCondition
+  status: ItemStatus
+  category: ItemCategory
+  location?: string
+  is_negotiable: boolean
+  item_url?: string
+  seller_id: string
+  created_by?: string
+  updated_by?: string
+  created_at: string
+  updated_at?: string
+}
+
