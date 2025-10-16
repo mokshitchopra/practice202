@@ -70,3 +70,25 @@ export async function getItem(itemId: number): Promise<Item> {
   return apiRequest<Item>(`/api/items/${itemId}`)
 }
 
+export async function getMyItems(): Promise<Item[]> {
+  return apiRequest<Item[]>('/api/items/my-items')
+}
+
+export interface ItemCreate {
+  title: string
+  description: string
+  price: number
+  condition: string
+  category: string
+  location?: string
+  is_negotiable?: boolean
+  item_url?: string
+}
+
+export async function createItem(itemData: ItemCreate): Promise<Item> {
+  return apiRequest<Item>('/api/items/', {
+    method: 'POST',
+    body: JSON.stringify(itemData),
+  })
+}
+
