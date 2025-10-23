@@ -62,8 +62,33 @@ export async function getCurrentUser(): Promise<User> {
   return apiRequest<User>('/api/auth/me')
 }
 
+export interface ItemSearchParams {
+  search?: string
+  category?: string
+  condition?: string
+  min_price?: number
+  max_price?: number
+  status?: string
+}
+
 export async function getItems(): Promise<Item[]> {
   return apiRequest<Item[]>('/api/items/')
+}
+
+export async function searchItems(params: ItemSearchParams): Promise<Item[]> {
+  const queryParams = new URLSearchParams()
+  
+  if (params.search) queryParams.append('search', params.search)
+  if (params.category) queryParams.append('category', params.category)
+  if (params.condition) queryParams.append('condition', params.condition)
+  if (params.min_price !== undefined) queryParams.append('min_price', params.min_price.toString())
+  if (params.max_price !== undefined) queryParams.append('max_price', params.max_price.toString())
+  if (params.status) queryParams.append('status', params.status)
+
+  const queryString = queryParams.toString()
+  const endpoint = queryString ? `/api/items/?${queryString}` : '/api/items/'
+  
+  return apiRequest<Item[]>(endpoint)
 }
 
 export async function getItem(itemId: number): Promise<Item> {
