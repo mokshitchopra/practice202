@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { format } from 'date-fns'
 import { searchItems, ItemSearchParams } from '../lib/api'
 import { Item, ItemCategory, ItemCondition } from '../types'
 import { Link } from 'react-router-dom'
@@ -293,6 +294,9 @@ export default function Home() {
                 }}>
                   {item.description}
                 </p>
+                <div style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: '#6c757d' }}>
+                  {format(new Date(item.created_at), 'MMM d, yyyy')}
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>
                     ${item.price.toFixed(2)}

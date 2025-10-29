@@ -117,3 +117,30 @@ export async function createItem(itemData: ItemCreate): Promise<Item> {
   })
 }
 
+export async function uploadFile(file: File, folder: string = 'uploads'): Promise<string> {
+  const token = localStorage.getItem('access_token')
+  
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('folder', folder)
+
+  const headers: HeadersInit = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/files/upload`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Upload failed' }))
+    throw new Error(error.detail || `Upload error! status: ${response.status}`)
+  }
+
+  const result = await response.json()
+  return result.data.s3_url
+}
+

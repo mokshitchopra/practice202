@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createItem } from '../lib/api'
+import { createItem, uploadFile } from '../lib/api'
 import { ItemCategory, ItemCondition } from '../types'
 
 export default function CreateItem() {
@@ -17,6 +17,9 @@ export default function CreateItem() {
     location: '',
     is_negotiable: true,
   })
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
   const mutation = useMutation({
@@ -42,6 +45,27 @@ export default function CreateItem() {
     }
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size must be less than 5MB')
+        return
+      }
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file')
+        return
+      }
+      setSelectedFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+      setError('')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -57,6 +81,20 @@ export default function CreateItem() {
       return
     }
 
+    let imageUrl: string | undefined
+
+    if (selectedFile) {
+      setUploading(true)
+      try {
+        imageUrl = await uploadFile(selectedFile, 'items')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to upload image')
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
     mutation.mutate({
       title: formData.title,
       description: formData.description,
@@ -65,6 +103,7 @@ export default function CreateItem() {
       category: formData.category,
       location: formData.location || undefined,
       is_negotiable: formData.is_negotiable,
+      item_url: imageUrl,
     })
   }
 
@@ -177,6 +216,53 @@ export default function CreateItem() {
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
+          <label htmlFor="image" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+            Item Image (optional)
+          </label>
+          <input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ width: '100%', padding: '0.5rem', boxSizing: 'border-box' }}
+          />
+          {imagePreview && (
+            <div style={{ marginTop: '0.5rem' }}>
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                style={{ 
+                  maxWidth: '200px', 
+                  maxHeight: '200px', 
+                  borderRadius: '4px',
+                  border: '1px solid #dee2e6'
+                }} 
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFile(null)
+                  setImagePreview(null)
+                }}
+                style={{
+                  display: 'block',
+                  marginTop: '0.5rem',
+                  padding: '0.25rem 0.5rem',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Remove Image
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '1rem' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <input
               type="checkbox"
@@ -197,19 +283,19 @@ export default function CreateItem() {
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
             type="submit"
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || uploading}
             style={{ 
               padding: '0.75rem 1.5rem',
               backgroundColor: '#007bff',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+              cursor: (mutation.isPending || uploading) ? 'not-allowed' : 'pointer',
               fontSize: '1rem',
-              opacity: mutation.isPending ? 0.6 : 1
+              opacity: (mutation.isPending || uploading) ? 0.6 : 1
             }}
           >
-            {mutation.isPending ? 'Creating...' : 'Create Listing'}
+            {(mutation.isPending || uploading) ? (uploading ? 'Uploading...' : 'Creating...') : 'Create Listing'}
           </button>
           <button
             type="button"

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { format } from 'date-fns'
 import { getItem } from '../lib/api'
 import { authStore } from '../store/authStore'
 
@@ -96,6 +97,10 @@ export default function ItemDetail() {
 
           <div style={{ marginBottom: '1rem' }}>
             <strong>Negotiable:</strong> {item.is_negotiable ? 'Yes' : 'No'}
+          </div>
+
+          <div style={{ marginBottom: '1rem', color: '#6c757d', fontSize: '0.9rem' }}>
+            <strong>Listed:</strong> {format(new Date(item.created_at), 'MMM d, yyyy')}
           </div>
 
           {isOwner && (
