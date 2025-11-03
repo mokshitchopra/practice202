@@ -348,41 +348,4 @@ def logout(
     return {"message": "Successfully logged out"}
 
 
-@router.get("/token-info", response_model=TokenUserInfo)
-def get_token_info(token_data = Depends(get_current_token_data)):
-    """
-    Get information from current token (without database lookup)
-    """
-    return TokenUserInfo(
-        user_id=token_data.user_id,
-        username=token_data.username,
-        email=token_data.email,
-        full_name=token_data.full_name,
-        role=token_data.role,
-        is_verified=True  # This would need to be stored in token if needed
-    )
 
-
-@router.post("/revoke-user-tokens/{user_id}")
-def revoke_user_tokens(
-    user_id: int,
-    admin_user: User = Depends(require_admin),
-    db: Session = Depends(get_db)
-):
-    """
-    Revoke all tokens for a specific user (admin only)
-    """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Clear all tokens
-    user.access_token = None
-    user.refresh_token = None
-    user.updated_by = admin_user.username
-    db.commit()
-    
-    return {"message": f"All tokens revoked for user {user.username}"}
