@@ -53,3 +53,27 @@ def deactivate_user(
     user.is_active = False
     db.commit()
     return {"message": f"User {user.username} has been deactivated"}
+
+@router.post("/revoke-user-tokens/{user_id}")
+def revoke_user_tokens(
+    user_id: int,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """
+    Revoke all tokens for a specific user (admin only)
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Clear all tokens
+    user.access_token = None
+    user.refresh_token = None
+    user.updated_by = admin_user.username
+    db.commit()
+    
+    return {"message": f"All tokens revoked for user {user.username}"}
