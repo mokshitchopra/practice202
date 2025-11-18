@@ -1,151 +1,171 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { signup, login } from '../lib/api'
-import { authStore } from '../store/authStore'
-import { UserRole } from '../types'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { GraduationCap } from "lucide-react";
+import { signup, login } from "@/lib/api";
+import { authStore } from "@/store/authStore";
+import { UserRole } from "@/types";
 
 export default function Signup() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    username: '',
-    password: '',
-    full_name: '',
-    phone: '',
-    student_id: '',
-  })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+    email: "",
+    username: "",
+    password: "",
+    full_name: "",
+    phone: "",
+    student_id: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
       await signup({
         ...formData,
         role: UserRole.USER,
-      })
+      });
       
       // Auto-login after signup
       const loginResponse = await login({
         email: formData.email,
         password: formData.password,
-      })
-      authStore.setAuth(loginResponse.access_token, loginResponse.user)
-      navigate('/')
+      });
+      authStore.setAuth(loginResponse.access_token, loginResponse.user);
+      toast.success("Account created successfully!");
+      navigate("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed')
+      const errorMessage = err instanceof Error ? err.message : "Signup failed";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
-      setLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-      <h2>Sign Up</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="email" style={{ display: 'block', marginBottom: '5px' }}>
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      {/* SJSU Banner */}
+      <div className="bg-gradient-primary py-4 px-4 shadow-elegant">
+        <div className="container mx-auto flex items-center justify-center space-x-3">
+          <GraduationCap className="w-7 h-7 text-primary-foreground" />
+          <h1 className="text-2xl md:text-3xl font-bold text-primary-foreground tracking-tight">
+            San José State University Marketplace
+          </h1>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="username" style={{ display: 'block', marginBottom: '5px' }}>
-            Username
-          </label>
-          <input
-            id="username"
-            name="username"
-            type="text"
-            value={formData.username}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="full_name" style={{ display: 'block', marginBottom: '5px' }}>
-            Full Name
-          </label>
-          <input
-            id="full_name"
-            name="full_name"
-            type="text"
-            value={formData.full_name}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="student_id" style={{ display: 'block', marginBottom: '5px' }}>
-            Student ID
-          </label>
-          <input
-            id="student_id"
-            name="student_id"
-            type="text"
-            value={formData.student_id}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="phone" style={{ display: 'block', marginBottom: '5px' }}>
-            Phone (optional)
-          </label>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            value={formData.phone}
-            onChange={handleChange}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="password" style={{ display: 'block', marginBottom: '5px' }}>
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-        {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: '100%', padding: '10px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}
-        >
-          {loading ? 'Signing up...' : 'Sign Up'}
-        </button>
-      </form>
-      <p style={{ marginTop: '15px', textAlign: 'center' }}>
-        Already have an account? <Link to="/login">Login</Link>
-      </p>
+      </div>
+      
+      <div className="flex-1 flex items-center justify-center p-4 py-12">
+        <Card className="w-full max-w-md shadow-elegant border-border/50 animate-fade-in max-h-[90vh] overflow-y-auto">
+          <CardHeader className="space-y-1 text-center pb-8">
+            <CardTitle className="text-3xl font-bold text-primary">Join the Marketplace</CardTitle>
+            <CardDescription className="text-base">Create your account to start trading</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSignup}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="yourname@sjsu.edu"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  placeholder="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  type="text"
+                  placeholder="Full Name"
+                  value={formData.full_name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="student_id">Student ID</Label>
+                <Input
+                  id="student_id"
+                  name="student_id"
+                  type="text"
+                  placeholder="Student ID"
+                  value={formData.student_id}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone (Optional)</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="Phone Number"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Create Account"}
+              </Button>
+              <p className="text-sm text-center text-muted-foreground">
+                Already have an account?{" "}
+                <Link to="/login" className="text-primary hover:underline font-medium">
+                  Sign in
+                </Link>
+              </p>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
     </div>
-  )
+  );
 }
-

@@ -1,138 +1,163 @@
-import { useQuery } from '@tanstack/react-query'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
-import { getItem } from '../lib/api'
-import { authStore } from '../store/authStore'
+import { useQuery } from "@tanstack/react-query";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import Navbar from "@/components/Navbar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getItem } from "@/lib/api";
+import { authStore } from "@/store/authStore";
 
 export default function ItemDetail() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const itemId = id ? parseInt(id) : 0
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const itemId = id ? parseInt(id) : 0;
 
   const { data: item, isLoading, error } = useQuery({
-    queryKey: ['item', itemId],
+    queryKey: ["item", itemId],
     queryFn: () => getItem(itemId),
     enabled: !!itemId,
-  })
+  });
 
   if (isLoading) {
-    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading item...</div>
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-lg text-muted-foreground">Loading item...</p>
+        </div>
+      </div>
+    );
   }
 
   if (error || !item) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <p style={{ color: 'red' }}>Error loading item: {error instanceof Error ? error.message : 'Item not found'}</p>
-        <Link to="/">Back to Home</Link>
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-lg text-destructive mb-4">
+            Error loading item: {error instanceof Error ? error.message : "Item not found"}
+          </p>
+          <Link to="/">
+            <Button>Back to Home</Button>
+          </Link>
+        </div>
       </div>
-    )
+    );
   }
 
-  const isOwner = authStore.user && item.seller_id === authStore.user.user_id.toString()
+  const isOwner = authStore.user && item.seller_id === authStore.user.user_id.toString();
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <Link to="/" style={{ display: 'inline-block', marginBottom: '1rem', color: '#007bff', textDecoration: 'none' }}>
-        ← Back to listings
-      </Link>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <Link to="/">
+          <Button variant="ghost" className="mb-4">
+            ← Back to listings
+          </Button>
+        </Link>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '1rem' }}>
-        <div>
-          {item.item_url ? (
-            <img 
-              src={item.item_url} 
-              alt={item.title}
-              style={{ 
-                width: '100%', 
-                borderRadius: '8px',
-                border: '1px solid #dee2e6'
-              }}
-            />
-          ) : (
-            <div style={{ 
-              width: '100%', 
-              aspectRatio: '1',
-              backgroundColor: '#f8f9fa',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '8px',
-              border: '1px solid #dee2e6',
-              color: '#6c757d'
-            }}>
-              No image available
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            {item.item_url ? (
+              <img
+                src={item.item_url}
+                alt={item.title}
+                className="w-full rounded-lg border border-border"
+              />
+            ) : (
+              <div className="w-full aspect-square bg-muted rounded-lg border border-border flex items-center justify-center text-muted-foreground">
+                No image available
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-4">{item.title}</h1>
+            <div className="text-3xl font-bold text-primary mb-6">${item.price.toFixed(2)}</div>
+
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">Status:</span>
+                <Badge variant={item.status === "available" ? "default" : "secondary"}>
+                  {item.status}
+                </Badge>
+              </div>
+
+              <div>
+                <span className="font-semibold">Category:</span>{" "}
+                {item.category.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </div>
+
+              <div>
+                <span className="font-semibold">Condition:</span>{" "}
+                {item.condition.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </div>
+
+              {item.location && (
+                <div>
+                  <span className="font-semibold">Location:</span> {item.location}
+                </div>
+              )}
+
+              <div>
+                <span className="font-semibold">Negotiable:</span> {item.is_negotiable ? "Yes" : "No"}
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                <span className="font-semibold">Listed:</span> {format(new Date(item.created_at), "MMM d, yyyy")}
+              </div>
             </div>
-          )}
+
+            {isOwner && (
+              <Card className="mb-6 bg-primary/10 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-lg">Your Listing</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    This is your listing. You can edit it from your "My Items" page.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {!isOwner && authStore.isAuthenticated && (
+              <Button className="w-full" size="lg">
+                Contact Seller
+              </Button>
+            )}
+
+            {!authStore.isAuthenticated && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle className="text-lg">Want to contact the seller?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Please log in to contact the seller about this item.
+                  </p>
+                  <Link to="/login">
+                    <Button>Login</Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
 
-        <div>
-          <h1 style={{ marginTop: 0 }}>{item.title}</h1>
-          <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#007bff', marginBottom: '1rem' }}>
-            ${item.price.toFixed(2)}
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <strong>Status:</strong> <span style={{ 
-              textTransform: 'capitalize',
-              padding: '0.25rem 0.5rem',
-              backgroundColor: item.status === 'available' ? '#d4edda' : '#f8d7da',
-              borderRadius: '4px',
-              fontSize: '0.9rem'
-            }}>{item.status}</span>
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <strong>Category:</strong> {item.category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <strong>Condition:</strong> {item.condition.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-          </div>
-
-          {item.location && (
-            <div style={{ marginBottom: '1rem' }}>
-              <strong>Location:</strong> {item.location}
-            </div>
-          )}
-
-          <div style={{ marginBottom: '1rem' }}>
-            <strong>Negotiable:</strong> {item.is_negotiable ? 'Yes' : 'No'}
-          </div>
-
-          <div style={{ marginBottom: '1rem', color: '#6c757d', fontSize: '0.9rem' }}>
-            <strong>Listed:</strong> {format(new Date(item.created_at), 'MMM d, yyyy')}
-          </div>
-
-          {isOwner && (
-            <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#e7f3ff', borderRadius: '4px' }}>
-              <p style={{ margin: 0 }}>This is your listing. You can edit it from your "My Items" page.</p>
-            </div>
-          )}
-
-          {!isOwner && authStore.isAuthenticated && (
-            <button 
-              style={{ 
-                marginTop: '1rem',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '1rem'
-              }}
-            >
-              Contact Seller
-            </button>
-          )}
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>
+            </CardContent>
+          </Card>
         </div>
-      </div>
-
-      <div style={{ marginTop: '2rem' }}>
-        <h2>Description</h2>
-        <p style={{ lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{item.description}</p>
-      </div>
+      </main>
     </div>
-  )
+  );
 }
-

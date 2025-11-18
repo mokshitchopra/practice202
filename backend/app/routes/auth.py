@@ -130,6 +130,13 @@ def signup(user_data: UserCreate, request: Request, db: Session = Depends(get_db
     
     except HTTPException:
         raise
+    except ValueError as e:
+        # Handle password validation errors
+        logger.warning(f"Password validation error for {user_data.email}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
         logger.error(f"Signup error for {user_data.email}: {str(e)}", exc_info=True)
         raise HTTPException(

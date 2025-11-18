@@ -2,16 +2,17 @@
 JWT token handling and authentication utilities
 """
 
+import hashlib
+import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import HTTPException, status
 from ..config import settings
 from ..enums.user import UserRole
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Bcrypt has a 72-byte limit
+BCRYPT_MAX_LENGTH = 72
 
 
 class TokenData:
@@ -25,13 +26,65 @@ class TokenData:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """
+    Verify a password against its hash.
+    Uses the same password preparation logic as hashing.
+    """
+    try:
+        # Prepare password the same way as in get_password_hash
+        password_bytes = plain_password.encode('utf-8')
+        if len(password_bytes) > BCRYPT_MAX_LENGTH:
+            # Pre-hash with SHA256 if password exceeds bcrypt's limit
+            password_bytes = hashlib.sha256(password_bytes).digest()
+        
+        # Ensure we don't exceed 72 bytes
+        if len(password_bytes) > BCRYPT_MAX_LENGTH:
+            password_bytes = password_bytes[:BCRYPT_MAX_LENGTH]
+        
+        # Use bcrypt directly to verify
+        return bcrypt.checkpw(password_bytes, hashed_password.encode('utf-8'))
+    except (ValueError, TypeError, Exception) as e:
+        # Handle any errors during verification
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
+    """
+    Hash a password using bcrypt directly.
+    
+    Args:
+        password: Plain text password to hash
+        
+    Returns:
+        Hashed password string
+        
+    Raises:
+        ValueError: If password is too long (DoS protection)
+    """
+    # Validate password length to prevent DoS attacks
+    if len(password) > 1000:
+        raise ValueError("Password is too long. Maximum 1000 characters allowed.")
+    
+    if not password:
+        raise ValueError("Password cannot be empty.")
+    
+    # Prepare password for bcrypt
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > BCRYPT_MAX_LENGTH:
+        # For passwords longer than 72 bytes, pre-hash with SHA256
+        # This is a common workaround for bcrypt's limitation
+        password_bytes = hashlib.sha256(password_bytes).digest()
+    
+    # Ensure we don't exceed 72 bytes (shouldn't happen after SHA256, but just in case)
+    if len(password_bytes) > BCRYPT_MAX_LENGTH:
+        password_bytes = password_bytes[:BCRYPT_MAX_LENGTH]
+    
+    # Generate salt and hash using bcrypt directly
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    
+    # Return as string (bcrypt returns bytes)
+    return hashed.decode('utf-8')
 
 
 def create_access_token(user_data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

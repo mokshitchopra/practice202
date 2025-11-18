@@ -17,17 +17,28 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  })
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    })
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
-    throw new Error(error.detail || `HTTP error! status: ${response.status}`)
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'An error occurred' }))
+      throw new Error(error.detail || `HTTP error! status: ${response.status}`)
+    }
+
+    return response.json()
+  } catch (error) {
+    // Handle network errors (connection refused, CORS, etc.)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error(
+        `Cannot connect to backend at ${API_BASE_URL}. Please ensure the backend server is running on port 8000.`
+      )
+    }
+    // Re-throw other errors
+    throw error
   }
-
-  return response.json()
 }
 
 export async function login(credentials: UserLogin): Promise<Token> {
@@ -60,6 +71,22 @@ export async function logout(): Promise<void> {
 
 export async function getCurrentUser(): Promise<User> {
   return apiRequest<User>('/api/auth/me')
+}
+
+export interface UserUpdate {
+  full_name?: string
+  phone?: string
+}
+
+export async function getProfile(): Promise<User> {
+  return apiRequest<User>('/api/users/profile')
+}
+
+export async function updateProfile(userData: UserUpdate): Promise<User> {
+  return apiRequest<User>('/api/users/profile', {
+    method: 'PUT',
+    body: JSON.stringify(userData),
+  })
 }
 
 export interface ItemSearchParams {

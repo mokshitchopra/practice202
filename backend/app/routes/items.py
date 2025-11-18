@@ -28,15 +28,22 @@ def create_item(
     """
     Create a new marketplace item (any authenticated user)
     """
-    db_item = Item(
-        **item_data.dict(),
-        seller_id=current_user.id,
-        created_by=current_user.username
-    )
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item
+    try:
+        db_item = Item(
+            **item_data.dict(),
+            seller_id=current_user.id,
+            created_by=current_user.username
+        )
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        return db_item
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create item: {str(e)}"
+        )
 
 
 @router.get("/", response_model=List[ItemResponse])

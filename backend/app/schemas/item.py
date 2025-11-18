@@ -42,7 +42,7 @@ class ItemResponse(BaseModel):
     location: Optional[str]
     is_negotiable: bool
     item_url: Optional[str]  # S3 URL for item image
-    seller_id: str
+    seller_id: int
     created_by: Optional[str]
     updated_by: Optional[str]
     created_at: datetime
