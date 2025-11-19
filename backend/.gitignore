@@ -58,3 +58,5 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+
+uploads/

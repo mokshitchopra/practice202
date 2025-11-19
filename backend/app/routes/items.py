@@ -4,6 +4,7 @@ Item management routes for marketplace listings with role-based access
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional
 
 from ..database import get_db
@@ -29,8 +30,13 @@ def create_item(
     Create a new marketplace item (any authenticated user)
     """
     try:
+        item_dict = item_data.dict()
+        # Ensure status is set to AVAILABLE if not provided
+        if 'status' not in item_dict:
+            item_dict['status'] = ItemStatus.AVAILABLE
+        
         db_item = Item(
-            **item_data.dict(),
+            **item_dict,
             seller_id=current_user.id,
             created_by=current_user.username
         )
@@ -64,11 +70,16 @@ def get_items(
     """
     query = db.query(Item)
     
+    # Always exclude removed items from public view
+    query = query.filter(Item.status != ItemStatus.REMOVED)
+    
     # Default to only showing available items for public view
     if status is None:
         query = query.filter(Item.status == ItemStatus.AVAILABLE)
     else:
-        query = query.filter(Item.status == status)
+        # Don't allow filtering by REMOVED status in public endpoint
+        if status != ItemStatus.REMOVED:
+            query = query.filter(Item.status == status)
     
     if category:
         query = query.filter(Item.category == category)
@@ -99,10 +110,17 @@ def get_my_items(
 ):
     """
     Get current user's items (any authenticated user)
+    Excludes removed items unless explicitly requested
     """
     query = db.query(Item).filter(Item.seller_id == current_user.id)
+    
+    # Exclude removed items by default
     if status:
+        # Only show removed items if explicitly requested
         query = query.filter(Item.status == status)
+    else:
+        # Default: exclude removed items
+        query = query.filter(Item.status != ItemStatus.REMOVED)
     
     return query.all()
 
@@ -111,10 +129,16 @@ def get_my_items(
 def get_item(item_id: int, db: Session = Depends(get_db)):
     """
     Get item by ID (public endpoint)
+    Returns 404 if item is removed
     """
     item = db.query(Item).filter(Item.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
+    
+    # Don't show removed items
+    if item.status == ItemStatus.REMOVED:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
     return item
 
 
@@ -196,8 +220,12 @@ def delete_item(
         )
     
     # Soft delete by changing status
-    item.status = ItemStatus.REMOVED
-    item.updated_by = current_user.username
+    # Use direct SQL update to bypass SQLAlchemy enum conversion issue
+    # The database enum expects lowercase 'removed', not 'REMOVED'
+    db.execute(
+        text("UPDATE items SET status = 'removed', updated_by = :updated_by, updated_at = now() WHERE id = :item_id"),
+        {"item_id": item_id, "updated_by": current_user.username}
+    )
     db.commit()
     
     return {"message": "Item deleted successfully"}

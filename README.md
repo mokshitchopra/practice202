@@ -15,7 +15,7 @@ Before running the application, make sure you have the following installed:
 1. **Node.js** (v18 or higher) - [Download here](https://nodejs.org/)
 2. **Python** (v3.8 or higher) - [Download here](https://www.python.org/downloads/)
 3. **PostgreSQL** - [Download here](https://www.postgresql.org/download/)
-4. **AWS Account** (for S3 file storage) - Optional for local development
+4. **AWS Account** (for S3 file storage) - Optional; local file storage works automatically
 
 ## Local Development Setup
 
@@ -78,7 +78,7 @@ refresh_token_expire_days=7
 # Application Configuration
 app_name=Campus Marketplace
 debug=true
-allowed_origins=http://localhost:5173,http://localhost:3000
+allowed_origins=http://localhost:8080
 
 # AWS S3 Configuration
 aws_access_key_id=your_aws_access_key
@@ -104,7 +104,7 @@ log_to_console=true
 **Important**: Replace all placeholder values with your actual configuration:
 - Database credentials should match your PostgreSQL setup
 - `secret_key` should be a long, random string (you can generate one with `openssl rand -hex 32`)
-- AWS credentials are required for file uploads. For local testing, you may need to modify the code to skip S3 uploads or use a local file storage solution.
+- **File Storage**: Local file storage works automatically (no setup needed). AWS S3 credentials are optional - only add them if you want to use S3 instead of local storage.
 
 #### Run the Backend Server
 
@@ -122,6 +122,23 @@ The backend API will be available at `http://localhost:8000`
 
 - API Documentation (Swagger): `http://localhost:8000/docs`
 - Alternative API Docs (ReDoc): `http://localhost:8000/redoc`
+
+#### Create Admin User
+
+After setting up the database, create an admin user:
+
+```bash
+cd backend
+python create_admin.py
+```
+
+Default credentials:
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Security Answer**: `Baahubali`
+
+⚠️ Change the password after first login!
+This can be done from the admin dashboard.
 
 ### 3. Frontend Setup
 
@@ -150,7 +167,7 @@ From the `frontend` directory:
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173` (default Vite port)
+The frontend will be available at `http://localhost:8080`
 
 ### 4. Running Both Servers
 
@@ -169,7 +186,7 @@ You'll need to run both servers simultaneously:
    npm run dev
    ```
 
-Then open your browser and navigate to `http://localhost:5173`
+Then open your browser and navigate to `http://localhost:8080`
 
 ## Building for Production
 
@@ -200,18 +217,18 @@ npm run preview
 ### CORS Issues
 
 - Ensure `allowed_origins` in backend `.env` includes your frontend URL
-- Default setup includes `http://localhost:5173` (Vite default port)
+- Default setup includes `http://localhost:8080`
 
 ### Port Already in Use
 
 - Backend: Change port in `main.py` or use: `uvicorn main:app --port 8001`
 - Frontend: Vite will automatically use the next available port, or configure in `vite.config.ts`
 
-### AWS S3 Issues (Local Development)
+### File Upload / Storage
 
-If you don't have AWS credentials set up, file uploads will fail. You may need to:
-- Set up AWS credentials and S3 bucket
-- Or modify the file upload route to use local storage for development
+- **Local Storage**: Works automatically - no setup needed. Files are stored in `backend/uploads/`
+- **S3 Storage**: Optional. To use S3, add AWS credentials to `.env` and set `storage_type=s3` in config
+- The application defaults to local storage if S3 credentials are not provided
 
 ## Project Structure
 
@@ -233,5 +250,7 @@ If you don't have AWS credentials set up, file uploads will fail. You may need t
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [React Documentation](https://react.dev/)
 - [Vite Documentation](https://vitejs.dev/)
+
+
 
 

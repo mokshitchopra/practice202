@@ -4,7 +4,9 @@ Main FastAPI application entry point for Campus Marketplace
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from app.database import engine, Base
 from app.routes import auth, users, items, admin, files
@@ -56,6 +58,14 @@ app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(items.router, prefix="/api/items", tags=["Items"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(files.router, prefix="/api/files", tags=["File Management"])
+
+# Serve uploaded files statically (for local storage)
+# Uploads directory is relative to backend/ directory
+backend_dir = Path(__file__).parent
+uploads_dir = backend_dir / "uploads"
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
+logger.info(f"Serving static files from: {uploads_dir.absolute()}")
 
 logger.info("All routes registered successfully")
 

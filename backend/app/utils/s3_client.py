@@ -61,10 +61,13 @@ class S3Client:
             
             # Validate file type
             file_extension = self._get_file_extension(file.filename)
-            if file_extension not in settings.get_allowed_image_extensions():
+            # Remove leading dot for comparison (allowed extensions don't have dots)
+            ext_without_dot = file_extension.lstrip('.')
+            allowed_exts = settings.get_allowed_image_extensions()
+            if ext_without_dot not in allowed_exts:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File type {file_extension} not allowed. Allowed types: {settings.get_allowed_image_extensions()}"
+                    detail=f"File type {file_extension} not allowed. Allowed types: {allowed_exts}"
                 )
             
             # Generate filename
@@ -157,5 +160,31 @@ class S3Client:
             return None
 
 
-# Global S3 client instance
-s3_client = S3Client()
+# Global S3 client instance (lazy initialization)
+_s3_client_instance = None
+
+def get_s3_client() -> S3Client:
+    """Get or create S3 client instance (lazy initialization)"""
+    global _s3_client_instance
+    if _s3_client_instance is None:
+        try:
+            _s3_client_instance = S3Client()
+        except Exception as e:
+            logger.warning(f"S3 client initialization failed: {e}. File uploads will not work until S3 is configured.")
+            # Create a dummy client that will raise errors when used
+            class DummyS3Client:
+                async def upload_file(self, *args, **kwargs):
+                    raise HTTPException(status_code=500, detail="S3 is not configured. Please configure AWS S3 credentials.")
+                async def delete_file(self, *args, **kwargs):
+                    raise HTTPException(status_code=500, detail="S3 is not configured. Please configure AWS S3 credentials.")
+                def generate_presigned_url(self, *args, **kwargs):
+                    raise HTTPException(status_code=500, detail="S3 is not configured. Please configure AWS S3 credentials.")
+            _s3_client_instance = DummyS3Client()
+    return _s3_client_instance
+
+# For backward compatibility, create a proxy object
+class S3ClientProxy:
+    def __getattr__(self, name):
+        return getattr(get_s3_client(), name)
+
+s3_client = S3ClientProxy()

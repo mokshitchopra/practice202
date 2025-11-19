@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { GraduationCap } from "lucide-react";
 import { signup, login } from "@/lib/api";
 import { authStore } from "@/store/authStore";
 import { UserRole } from "@/types";
@@ -57,16 +56,6 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      {/* SJSU Banner */}
-      <div className="bg-gradient-primary py-4 px-4 shadow-elegant">
-        <div className="container mx-auto flex items-center justify-center space-x-3">
-          <GraduationCap className="w-7 h-7 text-primary-foreground" />
-          <h1 className="text-2xl md:text-3xl font-bold text-primary-foreground tracking-tight">
-            San José State University Marketplace
-          </h1>
-        </div>
-      </div>
-      
       <div className="flex-1 flex items-center justify-center p-4 py-12">
         <Card className="w-full max-w-md shadow-elegant border-border/50 animate-fade-in max-h-[90vh] overflow-y-auto">
           <CardHeader className="space-y-1 text-center pb-8">

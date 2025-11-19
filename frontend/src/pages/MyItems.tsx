@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import ListingCard from "@/components/ListingCard";
+import MyItemCard from "@/components/MyItemCard";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,7 +20,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { getMyItems, createItem, uploadFile } from "@/lib/api";
 import { authStore } from "@/store/authStore";
-import { ItemCategory, ItemCondition } from "@/types";
+import { ItemCategory, ItemCondition, ItemStatus } from "@/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function MyItems() {
@@ -32,6 +39,7 @@ export default function MyItems() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<ItemStatus | "all">("all");
 
   const { data: items, isLoading, error } = useQuery({
     queryKey: ["myItems"],
@@ -39,29 +47,34 @@ export default function MyItems() {
     enabled: authStore.isAuthenticated,
   });
 
-  const mutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: createItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["myItems"] });
       toast.success("Listing created successfully!");
       setOpen(false);
-      setFormData({
-        title: "",
-        description: "",
-        price: "",
-        category: ItemCategory.OTHER,
-        condition: ItemCondition.GOOD,
-        location: "",
-        is_negotiable: true,
-      });
-      setSelectedFile(null);
-      setImagePreview(null);
+      resetForm();
     },
     onError: (err: Error) => {
       toast.error(err.message || "Failed to create listing");
     },
   });
+
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      price: "",
+      category: ItemCategory.OTHER,
+      condition: ItemCondition.GOOD,
+      location: "",
+      is_negotiable: true,
+    });
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -121,7 +134,7 @@ export default function MyItems() {
       setUploading(false);
     }
 
-    mutation.mutate({
+    createMutation.mutate({
       title: formData.title,
       description: formData.description,
       price: price,
@@ -132,6 +145,30 @@ export default function MyItems() {
       item_url: imageUrl,
     });
   };
+
+  // Filter and sort items
+  const filteredAndSortedItems = useMemo(() => {
+    if (!items) return [];
+    
+    // Filter by status
+    let filtered = items;
+    if (statusFilter !== "all") {
+      filtered = items.filter(item => item.status === statusFilter);
+    }
+    
+    // Sort: all statuses except SOLD first, then SOLD items last
+    return [...filtered].sort((a, b) => {
+      const aIsSold = a.status === ItemStatus.SOLD;
+      const bIsSold = b.status === ItemStatus.SOLD;
+      
+      // If one is sold and the other isn't, sold goes last
+      if (aIsSold && !bIsSold) return 1;
+      if (!aIsSold && bIsSold) return -1;
+      
+      // If both have same sold status, maintain original order (by creation date, newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [items, statusFilter]);
 
   if (!authStore.isAuthenticated) {
     return (
@@ -322,8 +359,8 @@ export default function MyItems() {
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={mutation.isPending || uploading}>
-                    {(mutation.isPending || uploading) ? (uploading ? "Uploading..." : "Creating...") : "Create Listing"}
+                  <Button type="submit" disabled={createMutation.isPending || uploading}>
+                    {(createMutation.isPending || uploading) ? (uploading ? "Uploading..." : "Creating...") : "Create Listing"}
                   </Button>
                 </div>
               </form>
@@ -331,24 +368,58 @@ export default function MyItems() {
           </Dialog>
         </div>
 
+        {/* Status Filter Buttons */}
+        {items && items.length > 0 && (
+          <div className="flex gap-2 mb-6 flex-wrap">
+            <Button
+              variant={statusFilter === "all" ? "default" : "outline"}
+              onClick={() => setStatusFilter("all")}
+              size="sm"
+              className="rounded-full"
+            >
+              All
+            </Button>
+            <Button
+              variant={statusFilter === ItemStatus.AVAILABLE ? "default" : "outline"}
+              onClick={() => setStatusFilter(ItemStatus.AVAILABLE)}
+              size="sm"
+              className="rounded-full"
+            >
+              Available
+            </Button>
+            <Button
+              variant={statusFilter === ItemStatus.RESERVED ? "default" : "outline"}
+              onClick={() => setStatusFilter(ItemStatus.RESERVED)}
+              size="sm"
+              className="rounded-full"
+            >
+              On Hold
+            </Button>
+            <Button
+              variant={statusFilter === ItemStatus.SOLD ? "default" : "outline"}
+              onClick={() => setStatusFilter(ItemStatus.SOLD)}
+              size="sm"
+              className="rounded-full"
+            >
+              Sold
+            </Button>
+          </div>
+        )}
+
+        {/* Display items */}
         {items && items.length === 0 ? (
           <div className="text-center py-16 bg-card rounded-lg border border-border">
             <p className="text-xl text-muted-foreground mb-4">You haven't created any listings yet</p>
             <Button onClick={() => setOpen(true)}>Create Your First Listing</Button>
           </div>
+        ) : filteredAndSortedItems.length === 0 ? (
+          <div className="text-center py-16 bg-card rounded-lg border border-border">
+            <p className="text-xl text-muted-foreground mb-4">No items found with the selected filter</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {items?.map((item) => (
-              <ListingCard
-                key={item.id}
-                id={item.id}
-                title={item.title}
-                price={item.price}
-                condition={item.condition}
-                category={item.category}
-                location={item.location}
-                imageUrl={item.item_url}
-              />
+            {filteredAndSortedItems.map((item) => (
+              <MyItemCard key={item.id} item={item} />
             ))}
           </div>
         )}

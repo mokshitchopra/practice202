@@ -36,12 +36,18 @@ class Settings(BaseSettings):
     # CORS - loaded from environment
     allowed_origins: str
     
-    # AWS S3 Configuration (Required from environment)
-    aws_access_key_id: str
-    aws_secret_access_key: str
-    aws_region: str
-    s3_bucket_name: str
-    s3_base_url: str
+    # Storage Configuration
+    # Set to 'local' for local filesystem storage or 's3' for AWS S3
+    # Default: 'local' (for development/testing)
+    storage_type: str = "local"
+    
+    # AWS S3 Configuration (Optional - defaults to empty strings if not provided)
+    # Only used when storage_type is set to 's3'
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    aws_region: str = "us-east-1"
+    s3_bucket_name: str = ""
+    s3_base_url: str = ""
     
     # File uploads
     max_upload_size: int

@@ -8,9 +8,15 @@ from typing import Dict, Any
 from ..database import get_db
 from ..auth.dependencies import get_current_user
 from ..models.user import User
-from ..utils.s3_client import s3_client
+from ..utils.storage import get_file_storage
 
-router = APIRouter(prefix="/files", tags=["File Management"])
+router = APIRouter(tags=["File Management"])
+
+
+@router.get("/test")
+async def test_files_route():
+    """Test endpoint to verify files router is working"""
+    return {"message": "Files router is working", "storage": "local"}
 
 
 @router.post("/upload", response_model=Dict[str, Any])
@@ -35,8 +41,9 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="File must have a name")
     
     try:
-        # Upload file to S3
-        s3_url = await s3_client.upload_file(
+        # Upload file (S3 or local storage)
+        storage = get_file_storage()
+        file_url = await storage.upload_file(
             file=file, 
             folder=f"{folder}/user_{current_user.id}",  # Organize by user
             custom_filename=None  # Auto-generate UUID filename
@@ -47,7 +54,8 @@ async def upload_file(
             "message": "File uploaded successfully",
             "data": {
                 "original_filename": file.filename,
-                "s3_url": s3_url,
+                "s3_url": file_url,  # URL (works for both S3 and local)
+                "file_url": file_url,  # Alias for clarity
                 "content_type": file.content_type,
                 "uploaded_by": current_user.id
             }
@@ -85,7 +93,8 @@ async def delete_file(
         )
     
     try:
-        success = await s3_client.delete_file(s3_url)
+        storage = get_file_storage()
+        success = await storage.delete_file(s3_url)
         
         if success:
             return {
@@ -124,7 +133,8 @@ async def generate_presigned_url(
         raise HTTPException(status_code=400, detail="S3 key is required")
     
     try:
-        presigned_url = s3_client.generate_presigned_url(s3_key, expiration)
+        storage = get_file_storage()
+        presigned_url = storage.generate_presigned_url(s3_key, expiration)
         
         if presigned_url:
             return {

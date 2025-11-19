@@ -4,6 +4,7 @@ Enhanced authentication routes with JWT token management
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from datetime import timedelta
 from typing import Optional
 
@@ -11,13 +12,15 @@ from ..database import get_db
 from ..models.user import User
 from ..schemas.auth import (
     Token, UserLogin, UserCreate, UserResponse, 
-    RefreshToken, TokenUserInfo, PasswordChange
+    RefreshToken, TokenUserInfo, PasswordChange, AdminLogin, AdminSecurityQuestion
 )
 from ..auth.jwt_handler import (
     verify_password, get_password_hash, create_access_token, 
-    create_refresh_token, verify_refresh_token
+    create_refresh_token, verify_refresh_token, verify_token
 )
+from jose import JWTError, jwt
 from ..auth.dependencies import get_current_user, get_current_token_data, require_admin
+from ..enums.user import UserRole
 from ..config import settings
 from ..core.logging import get_logger, log_auth_event
 from ..middleware.logging import DatabaseLoggingMiddleware
@@ -145,15 +148,24 @@ def signup(user_data: UserCreate, request: Request, db: Session = Depends(get_db
         )
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login")
 def login(user_credentials: UserLogin, request: Request, db: Session = Depends(get_db)):
     """
-    Login with email and password to get access and refresh tokens
+    Login with email/username and password.
+    For admin users, returns temp token for security question step.
+    For regular users, returns full access token.
     """
     client_ip = get_client_ip(request)
     
     try:
-        user = get_user_by_email(db, user_credentials.email)
+        # Find user by email or username
+        user = db.query(User).filter(
+            or_(
+                User.email == user_credentials.email,
+                User.username == user_credentials.email
+            )
+        ).first()
+        
         if not user or not verify_password(user_credentials.password, user.hashed_password):
             log_auth_event(
                 logger=logger,
@@ -165,7 +177,7 @@ def login(user_credentials: UserLogin, request: Request, db: Session = Depends(g
             )
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
+                detail="Incorrect email/username or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
@@ -185,7 +197,52 @@ def login(user_credentials: UserLogin, request: Request, db: Session = Depends(g
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Create token data
+        # If user is admin, return temp token for security question step
+        if user.role == UserRole.ADMIN:
+            # Create temporary token for security question step (short expiration: 5 minutes)
+            temp_token_data = {
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role.value,
+                "full_name": user.full_name,
+                "step": "security_question"  # Mark as security question step
+            }
+            
+            # Debug: Log token data before encoding
+            logger.debug(f"Creating temp token with data: {temp_token_data}")
+            
+            temp_token_expires = timedelta(minutes=5)
+            temp_token = create_access_token(temp_token_data, expires_delta=temp_token_expires)
+            
+            # Debug: Decode token immediately to verify step field is included
+            try:
+                test_payload = jwt.decode(temp_token, settings.secret_key, algorithms=[settings.algorithm])
+                logger.info(f"Temp token created successfully. Payload keys: {list(test_payload.keys())}, step: {test_payload.get('step')}")
+                if test_payload.get('step') != 'security_question':
+                    logger.error(f"CRITICAL: Temp token missing 'step' field! Full payload: {test_payload}")
+                    raise ValueError("Temp token created without 'step' field")
+            except Exception as e:
+                logger.error(f"Error verifying temp token immediately after creation: {str(e)}")
+                raise
+            
+            log_auth_event(
+                logger=logger,
+                event="admin_login_step1",
+                user_id=str(user.id),
+                email=user.email,
+                ip_address=client_ip,
+                success=True
+            )
+            
+            return {
+                "temp_token": temp_token,
+                "security_question": "Best movie of all time?",
+                "message": "Please answer the security question",
+                "requires_security": True
+            }
+        
+        # Regular user - create full tokens
         token_data = {
             "user_id": user.id,
             "username": user.username,
@@ -353,6 +410,261 @@ def logout(
     db.commit()
     
     return {"message": "Successfully logged out"}
+
+
+# Admin login endpoints with 2FA
+@router.post("/admin/login")
+def admin_login_step1(admin_credentials: AdminLogin, request: Request, db: Session = Depends(get_db)):
+    """
+    Admin login step 1: Validate username and password
+    Returns a temporary token for security question step
+    """
+    client_ip = get_client_ip(request)
+    
+    try:
+        # Find user by username or email (admin login can use either)
+        user = db.query(User).filter(
+            or_(
+                User.username == admin_credentials.username,
+                User.email == admin_credentials.username
+            )
+        ).first()
+        
+        if not user:
+            log_auth_event(
+                logger=logger,
+                event="admin_login",
+                username=admin_credentials.username,
+                ip_address=client_ip,
+                success=False,
+                reason="User not found"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Check if user is admin
+        if user.role != UserRole.ADMIN:
+            log_auth_event(
+                logger=logger,
+                event="admin_login",
+                username=admin_credentials.username,
+                ip_address=client_ip,
+                success=False,
+                reason="Not an admin user"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required",
+            )
+        
+        # Verify password
+        if not verify_password(admin_credentials.password, user.hashed_password):
+            log_auth_event(
+                logger=logger,
+                event="admin_login",
+                username=admin_credentials.username,
+                ip_address=client_ip,
+                success=False,
+                reason="Invalid password"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if not user.is_active:
+            log_auth_event(
+                logger=logger,
+                event="admin_login",
+                username=admin_credentials.username,
+                ip_address=client_ip,
+                success=False,
+                reason="Account deactivated"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account is deactivated",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Create temporary token for security question step (short expiration: 5 minutes)
+        temp_token_data = {
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value,
+            "full_name": user.full_name,
+            "step": "security_question"  # Mark as security question step
+        }
+        
+        temp_token_expires = timedelta(minutes=5)
+        temp_token = create_access_token(temp_token_data, expires_delta=temp_token_expires)
+        
+        log_auth_event(
+            logger=logger,
+            event="admin_login_step1",
+            user_id=str(user.id),
+            username=user.username,
+            ip_address=client_ip,
+            success=True
+        )
+        
+        return {
+            "temp_token": temp_token,
+            "security_question": "Best movie of all time?",
+            "message": "Please answer the security question"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin login step 1 error for {admin_credentials.username}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed due to server error"
+        )
+
+
+@router.post("/admin/verify-security")
+def admin_login_step2(
+    security_answer: AdminSecurityQuestion,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Admin login step 2: Verify security question answer
+    Returns full access token if answer is correct
+    """
+    client_ip = get_client_ip(request)
+    
+    # Get temp token from Authorization header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Temporary token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    temp_token = auth_header.split("Bearer ")[1].strip()
+    
+    try:
+        # Verify temp token and check if it's a security question step token
+        payload = jwt.decode(temp_token, settings.secret_key, algorithms=[settings.algorithm])
+        
+        # Debug: Log full payload for troubleshooting
+        logger.info(f"Decoded token payload: {payload}")
+        logger.info(f"Token payload keys: {list(payload.keys())}")
+        logger.info(f"Token step value: {payload.get('step')}")
+        logger.info(f"Token type: {payload.get('type')}")
+        
+        # Check if step field exists
+        if "step" not in payload:
+            logger.error(f"Token missing 'step' field. All payload keys: {list(payload.keys())}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token missing security step field. Please login again.",
+            )
+        
+        if payload.get("step") != "security_question":
+            logger.warning(f"Token step mismatch. Expected 'security_question', got: {payload.get('step')}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=f"Invalid token for security question step. Token step: {payload.get('step')}",
+            )
+        
+        token_data = verify_token(temp_token)
+        
+        # Get user
+        user = db.query(User).filter(User.id == token_data.user_id).first()
+        if not user or user.role != UserRole.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid user",
+            )
+        
+        # Verify security answer (case-insensitive)
+        correct_answer = "Baahubali"
+        if security_answer.answer.strip().lower() != correct_answer.lower():
+            log_auth_event(
+                logger=logger,
+                event="admin_login_step2",
+                user_id=str(user.id),
+                email=user.email,
+                ip_address=client_ip,
+                success=False,
+                reason="Incorrect security answer"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect security answer",
+            )
+        
+        # Create full access and refresh tokens
+        token_data_dict = {
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value,
+            "full_name": user.full_name
+        }
+        
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(token_data_dict, expires_delta=access_token_expires)
+        refresh_token = create_refresh_token(user.id)
+        
+        # Store tokens in database
+        with DatabaseLoggingMiddleware("UPDATE", "users", logger):
+            user.access_token = access_token
+            user.refresh_token = refresh_token
+            user.updated_by = user.username
+            db.commit()
+        
+        # Log successful login
+        log_auth_event(
+            logger=logger,
+            event="admin_login",
+            user_id=str(user.id),
+            email=user.email,
+            ip_address=client_ip,
+            success=True
+        )
+        
+        # Create user info for response
+        user_info = TokenUserInfo(
+            user_id=user.id,
+            username=user.username,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            is_verified=user.is_verified
+        )
+        
+        return Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            expires_in=settings.access_token_expire_minutes * 60,
+            user=user_info
+        )
+    
+    except HTTPException:
+        raise
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Temporary token expired or invalid. Please login again.",
+        )
+    except Exception as e:
+        logger.error(f"Admin login step 2 error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Verification failed due to server error"
+        )
 
 
 

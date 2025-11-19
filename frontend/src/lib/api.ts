@@ -41,10 +41,58 @@ async function apiRequest<T>(
   }
 }
 
-export async function login(credentials: UserLogin): Promise<Token> {
-  return apiRequest<Token>('/api/auth/login', {
+export interface LoginResponse {
+  access_token?: string
+  refresh_token?: string
+  token_type?: string
+  expires_in?: number
+  user?: TokenUserInfo
+  temp_token?: string
+  security_question?: string
+  message?: string
+  requires_security?: boolean
+}
+
+export async function login(credentials: UserLogin): Promise<LoginResponse> {
+  return apiRequest<LoginResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
+  })
+}
+
+export interface AdminLoginStep1 {
+  username: string
+  password: string
+}
+
+export interface AdminLoginStep1Response {
+  temp_token: string
+  security_question: string
+  message: string
+}
+
+export interface AdminSecurityAnswer {
+  answer: string
+}
+
+export async function adminLoginStep1(credentials: AdminLoginStep1): Promise<AdminLoginStep1Response> {
+  return apiRequest<AdminLoginStep1Response>('/api/auth/admin/login', {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  })
+}
+
+export async function adminLoginStep2(answer: AdminSecurityAnswer, tempToken: string): Promise<Token> {
+  // Create headers without the default Authorization from localStorage
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${tempToken.trim()}`
+  }
+  
+  return apiRequest<Token>('/api/auth/admin/verify-security', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(answer),
   })
 }
 
@@ -144,6 +192,31 @@ export async function createItem(itemData: ItemCreate): Promise<Item> {
   })
 }
 
+export interface ItemUpdate {
+  title?: string
+  description?: string
+  price?: number
+  condition?: string
+  category?: string
+  location?: string
+  is_negotiable?: boolean
+  status?: string
+  item_url?: string
+}
+
+export async function updateItem(itemId: number, itemData: ItemUpdate): Promise<Item> {
+  return apiRequest<Item>(`/api/items/${itemId}`, {
+    method: 'PUT',
+    body: JSON.stringify(itemData),
+  })
+}
+
+export async function deleteItem(itemId: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/items/${itemId}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function uploadFile(file: File, folder: string = 'uploads'): Promise<string> {
   const token = localStorage.getItem('access_token')
   
@@ -168,6 +241,92 @@ export async function uploadFile(file: File, folder: string = 'uploads'): Promis
   }
 
   const result = await response.json()
-  return result.data.s3_url
+  // Support both s3_url (S3) and file_url (local storage)
+  return result.data.file_url || result.data.s3_url
+}
+
+// Admin API functions
+export interface AdminStats {
+  users: {
+    total: number
+    active: number
+    sellers: number
+    recent_registrations: number
+  }
+  listings: {
+    total: number
+    active: number
+    sold: number
+    reserved: number
+    recent: number
+  }
+  category_breakdown: Record<string, number>
+  status_breakdown: Record<string, number>
+}
+
+export interface Seller extends User {
+  listing_count: number
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  return apiRequest<AdminStats>('/api/admin/stats')
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  return apiRequest<User[]>('/api/admin/users')
+}
+
+export async function getSellers(): Promise<Seller[]> {
+  return apiRequest<Seller[]>('/api/admin/sellers')
+}
+
+export async function deleteUser(userId: number): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/admin/users/${userId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getAllItemsAdmin(status?: string): Promise<Item[]> {
+  const params = new URLSearchParams()
+  if (status) {
+    params.append('status', status)
+  }
+  const queryString = params.toString()
+  return apiRequest<Item[]>(`/api/items/admin/all${queryString ? `?${queryString}` : ''}`)
+}
+
+export interface AdminPasswordReset {
+  new_password: string
+  confirm_password: string
+}
+
+export async function resetUserPassword(userId: number, passwordData: AdminPasswordReset): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/admin/users/${userId}/reset-password`, {
+    method: 'PUT',
+    body: JSON.stringify(passwordData),
+  })
+}
+
+export interface AdminSecurityAnswerVerify {
+  answer: string
+}
+
+export async function verifyAdminSecurityAnswer(userId: number, answer: AdminSecurityAnswerVerify): Promise<{ message: string; verified: boolean }> {
+  return apiRequest<{ message: string; verified: boolean }>(`/api/admin/users/${userId}/verify-security`, {
+    method: 'POST',
+    body: JSON.stringify(answer),
+  })
+}
+
+export interface AdminSecurityAnswerUpdate {
+  new_answer: string
+  confirm_answer: string
+}
+
+export async function updateAdminSecurityAnswer(userId: number, securityData: AdminSecurityAnswerUpdate): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/admin/users/${userId}/update-security-answer`, {
+    method: 'PUT',
+    body: JSON.stringify(securityData),
+  })
 }
 

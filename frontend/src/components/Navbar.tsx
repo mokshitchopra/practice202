@@ -1,18 +1,28 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { GraduationCap, Home, Package, User, LogOut } from "lucide-react";
+import { Home, Package, User, LogOut, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { authStore } from "@/store/authStore";
 import { logout } from "@/lib/api";
+import ThemeToggle from "./ThemeToggle";
+import sjsuLogo from "../../media/sjsu_logo.svg";
+import { useEffect, useState } from "react";
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isAuthenticated = authStore.isAuthenticated;
+  const [isAuthenticated, setIsAuthenticated] = useState(authStore.isAuthenticated);
+
+  // Re-check auth state when location changes
+  useEffect(() => {
+    authStore.initAuth();
+    setIsAuthenticated(authStore.isAuthenticated);
+  }, [location.pathname]);
 
   const navItems = [
     { name: "Home", path: "/", icon: Home },
     { name: "My Items", path: "/my-items", icon: Package },
+    { name: "Favorites", path: "/favorites", icon: Heart },
     { name: "Profile", path: "/profile", icon: User },
   ];
 
@@ -26,28 +36,20 @@ const Navbar = () => {
 
   return (
     <>
-      {/* SJSU Banner */}
-      <div className="bg-gradient-primary py-3 px-4 shadow-md">
-        <div className="container mx-auto flex items-center justify-center space-x-3">
-          <GraduationCap className="w-6 h-6 text-primary-foreground" />
-          <h1 className="text-xl md:text-2xl font-bold text-primary-foreground tracking-tight">
-            San José State University Marketplace
-          </h1>
-        </div>
-      </div>
-      
       {/* Navigation */}
-      <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
+      <nav className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all duration-200">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-xl text-primary hidden sm:inline">SJSU Marketplace</span>
+            <Link to="/" className="flex items-center space-x-2.5 hover:opacity-80 transition-opacity duration-200">
+              <img 
+                src={sjsuLogo} 
+                alt="SJSU Logo" 
+                className="w-8 h-8"
+              />
+              <span className="font-semibold text-lg text-foreground hidden sm:inline">Spartan Marketplace</span>
             </Link>
 
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="flex items-center gap-1">
               {isAuthenticated ? (
                 <>
                   {navItems.map((item) => (
@@ -56,8 +58,10 @@ const Navbar = () => {
                         variant={isActive(item.path) ? "default" : "ghost"}
                         size="sm"
                         className={cn(
-                          "flex items-center space-x-1",
-                          isActive(item.path) && "bg-primary text-primary-foreground"
+                          "flex items-center gap-1.5 rounded-full px-4 h-9 text-sm font-normal",
+                          isActive(item.path) 
+                            ? "bg-primary text-primary-foreground" 
+                            : "hover:bg-muted/50"
                         )}
                       >
                         <item.icon className="w-4 h-4" />
@@ -65,10 +69,11 @@ const Navbar = () => {
                       </Button>
                     </Link>
                   ))}
+                  <ThemeToggle />
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex items-center space-x-1 text-destructive"
+                    className="flex items-center gap-1.5 rounded-full px-4 h-9 text-sm font-normal hover:bg-muted/50"
                     onClick={handleLogout}
                   >
                     <LogOut className="w-4 h-4" />
@@ -77,13 +82,14 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
+                  <ThemeToggle />
                   <Link to="/login">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="rounded-full px-4 h-9 text-sm font-normal hover:bg-muted/50">
                       Login
                     </Button>
                   </Link>
                   <Link to="/signup">
-                    <Button size="sm">
+                    <Button size="sm" className="rounded-full px-4 h-9 text-sm font-normal">
                       Sign Up
                     </Button>
                   </Link>

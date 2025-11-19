@@ -4,93 +4,91 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
+Light mode: White and blue (SJSU colors)
+Dark mode: Black/dark grey and gold/yellow (matching SJSU logo)
 */
 
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 210 100% 32%;
+    --foreground: 210 20% 15%;
     
-    /* SJSU Blue - Primary brand color */
-    --sjsu-blue: 207 100% 32%;
-    --sjsu-blue-dark: 207 100% 25%;
-    --sjsu-blue-light: 207 100% 45%;
+    /* Blue - Primary brand color (Airbnb-style) */
+    --sjsu-blue: 207 90% 54%;
+    --sjsu-blue-dark: 207 90% 45%;
+    --sjsu-blue-light: 207 90% 65%;
     
-    /* SJSU Gold - Accent color */
-    --sjsu-gold: 43 82% 53%;
-    --sjsu-gold-dark: 43 82% 45%;
-    --sjsu-gold-light: 43 82% 65%;
+    /* Gold - Accent color */
+    --sjsu-gold: 43 96% 56%;
+    --sjsu-gold-dark: 43 96% 48%;
+    --sjsu-gold-light: 43 96% 64%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 100% 32%;
+    --card-foreground: 210 20% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 100% 32%;
+    --popover-foreground: 210 20% 15%;
 
-    --primary: 207 100% 32%;
+    --primary: 207 90% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 43 82% 53%;
-    --secondary-foreground: 207 100% 15%;
+    --secondary: 43 96% 56%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 43 82% 53%;
-    --accent-foreground: 207 100% 15%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 207 100% 32%;
+    --border: 210 20% 90%;
+    --input: 210 20% 90%;
+    --ring: 207 90% 54%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(207 100% 32%), hsl(207 100% 45%));
-    --gradient-gold: linear-gradient(135deg, hsl(43 82% 53%), hsl(43 82% 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(207 100% 32%) 0%, hsl(207 100% 40%) 50%, hsl(43 82% 53%) 100%);
-    
-    /* Shadows */
-    --shadow-card: 0 2px 8px rgba(0, 85, 162, 0.1);
-    --shadow-hover: 0 4px 16px rgba(0, 85, 162, 0.15);
-    --shadow-elegant: 0 10px 30px -10px rgba(0, 85, 162, 0.3);
-    --shadow-glow: 0 0 20px rgba(0, 85, 162, 0.2);
+    /* Minimalist shadows */
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.08), 0 8px 16px rgba(0, 0, 0, 0.08);
+    --shadow-elegant: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .dark {
-    --background: 207 100% 8%;
-    --foreground: 0 0% 98%;
+    /* Black/Dark Grey background - SJSU dark theme */
+    --background: 0 0% 8%;
+    --foreground: 43 96% 88%;
 
-    --card: 207 100% 10%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 12%;
+    --card-foreground: 43 96% 88%;
 
-    --popover: 207 100% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 43 96% 88%;
 
-    --primary: 43 82% 53%;
-    --primary-foreground: 207 100% 15%;
+    /* Gold/Yellow as primary - matching SJSU logo */
+    --primary: 43 96% 56%;
+    --primary-foreground: 0 0% 8%;
 
-    --secondary: 207 100% 20%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 43 96% 48%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 207 50% 15%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 43 96% 65%;
 
-    --accent: 43 82% 53%;
-    --accent-foreground: 207 100% 15%;
+    --accent: 43 96% 56%;
+    --accent-foreground: 0 0% 8%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 207 50% 20%;
-    --input: 207 50% 20%;
-    --ring: 43 82% 53%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 43 96% 56%;
     
-    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 2px 4px rgba(215, 180, 0, 0.2), 0 8px 16px rgba(215, 180, 0, 0.15);
   }
 }
 
@@ -100,7 +98,28 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Subtle animations */
+@layer utilities {
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hover-lift {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .click-scale:active {
+    transform: scale(0.98);
   }
 }
 

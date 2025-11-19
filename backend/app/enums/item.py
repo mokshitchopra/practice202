@@ -27,3 +27,4 @@ class ItemStatus(str, enum.Enum):
     SOLD = "sold"
     RESERVED = "reserved"
     INACTIVE = "inactive"
+    REMOVED = "removed"

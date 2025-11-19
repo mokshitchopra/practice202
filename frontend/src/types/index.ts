@@ -37,7 +37,7 @@ export interface Token {
 }
 
 export interface UserLogin {
-  email: string
+  email: string  // Can be email or username
   password: string
 }
 
@@ -77,8 +77,9 @@ export enum ItemCondition {
 export enum ItemStatus {
   AVAILABLE = "available",
   SOLD = "sold",
-  RESERVED = "reserved",
-  INACTIVE = "inactive"
+  RESERVED = "reserved", // Maps to "on_hold" in UI
+  INACTIVE = "inactive", // Maps to "archive" in UI
+  REMOVED = "removed" // Soft deleted items
 }
 
 export interface Item {
@@ -92,7 +93,7 @@ export interface Item {
   location?: string
   is_negotiable: boolean
   item_url?: string
-  seller_id: string
+  seller_id: number
   created_by?: string
   updated_by?: string
   created_at: string

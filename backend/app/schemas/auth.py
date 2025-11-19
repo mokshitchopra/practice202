@@ -31,7 +31,7 @@ class TokenUserInfo(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str  # Can be email or username
     password: str
 
 
@@ -76,3 +76,31 @@ class PasswordReset(BaseModel):
 class PasswordResetConfirm(BaseModel):
     token: str
     new_password: str
+
+
+class AdminLogin(BaseModel):
+    """Admin login with username/password"""
+    username: str
+    password: str
+
+
+class AdminSecurityQuestion(BaseModel):
+    """Admin security question answer"""
+    answer: str
+
+
+class AdminPasswordReset(BaseModel):
+    """Admin password reset for any user"""
+    new_password: str
+    confirm_password: str
+
+
+class AdminSecurityAnswerVerify(BaseModel):
+    """Verify security answer for admin self-modification"""
+    answer: str
+
+
+class AdminSecurityAnswerUpdate(BaseModel):
+    """Update security answer for admin"""
+    new_answer: str
+    confirm_answer: str
