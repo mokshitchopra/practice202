@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         """Compile database URL from individual parameters"""
+        if self.db_driver == "sqlite":
+            return f"sqlite:///./{self.db_name}.db"
         return f"{self.db_driver}://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
     
     # Security (Required from environment)

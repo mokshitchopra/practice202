@@ -1,13 +1,13 @@
 import { UserLogin, UserCreate, Token, User, Item } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001'
 
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = localStorage.getItem('access_token')
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -33,7 +33,7 @@ async function apiRequest<T>(
     // Handle network errors (connection refused, CORS, etc.)
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error(
-        `Cannot connect to backend at ${API_BASE_URL}. Please ensure the backend server is running on port 8000.`
+        `Cannot connect to backend at ${API_BASE_URL}. Please ensure the backend server is running.`
       )
     }
     // Re-throw other errors
@@ -88,7 +88,7 @@ export async function adminLoginStep2(answer: AdminSecurityAnswer, tempToken: st
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${tempToken.trim()}`
   }
-  
+
   return apiRequest<Token>('/api/auth/admin/verify-security', {
     method: 'POST',
     headers,
@@ -152,7 +152,7 @@ export async function getItems(): Promise<Item[]> {
 
 export async function searchItems(params: ItemSearchParams): Promise<Item[]> {
   const queryParams = new URLSearchParams()
-  
+
   if (params.search) queryParams.append('search', params.search)
   if (params.category) queryParams.append('category', params.category)
   if (params.condition) queryParams.append('condition', params.condition)
@@ -162,7 +162,7 @@ export async function searchItems(params: ItemSearchParams): Promise<Item[]> {
 
   const queryString = queryParams.toString()
   const endpoint = queryString ? `/api/items/?${queryString}` : '/api/items/'
-  
+
   return apiRequest<Item[]>(endpoint)
 }
 
@@ -219,7 +219,7 @@ export async function deleteItem(itemId: number): Promise<{ message: string }> {
 
 export async function uploadFile(file: File, folder: string = 'uploads'): Promise<string> {
   const token = localStorage.getItem('access_token')
-  
+
   const formData = new FormData()
   formData.append('file', file)
   formData.append('folder', folder)

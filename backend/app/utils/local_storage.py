@@ -26,7 +26,7 @@ class LocalStorage:
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         
         # Base URL for serving files
-        self.base_url = f"http://localhost:8000/uploads"
+        self.base_url = f"http://localhost:8001/uploads"
         
         logger.info(f"Local storage initialized: {self.upload_dir.absolute()}")
     
@@ -117,7 +117,7 @@ class LocalStorage:
         """
         try:
             # Extract relative path from URL
-            # URL format: http://localhost:8000/uploads/folder/filename
+            # URL format: http://localhost:8001/uploads/folder/filename
             if "/uploads/" in file_url:
                 relative_path = file_url.split("/uploads/")[-1]
             else:

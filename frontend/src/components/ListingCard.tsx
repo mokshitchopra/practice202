@@ -88,7 +88,7 @@ const ListingCard = ({ title, price, condition, category, location, imageUrl, id
             <Scale className={cn("w-4 h-4", inComparison && "fill-current")} />
           </Button>
         </div>
-        <div className="aspect-square bg-muted/30 overflow-hidden rounded-t-xl">
+        <div className="aspect-[4/3] bg-muted/30 overflow-hidden rounded-t-xl relative">
           {imageUrl ? (
             <img
               src={imageUrl}

@@ -22,6 +22,10 @@ import { getMyItems, createItem, uploadFile } from "@/lib/api";
 import { authStore } from "@/store/authStore";
 import { ItemCategory, ItemCondition, ItemStatus } from "@/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import ImageCropper from "@/components/ImageCropper";
+import ListingCardSkeleton from "@/components/skeletons/ListingCardSkeleton";
+import EmptyState from "@/components/EmptyState";
+import { Package } from "lucide-react";
 
 export default function MyItems() {
   const navigate = useNavigate();
@@ -39,6 +43,8 @@ export default function MyItems() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showCropper, setShowCropper] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ItemStatus | "all">("all");
 
   const { data: items, isLoading, error } = useQuery({
@@ -97,13 +103,36 @@ export default function MyItems() {
         toast.error("Please select an image file");
         return;
       }
-      setSelectedFile(file);
+
+      // Read file for cropping
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setTempImageSrc(reader.result as string);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
+
+      // Reset input value so same file can be selected again if needed
+      e.target.value = "";
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    // Convert blob to file
+    const file = new File([croppedBlob], "item-image.jpg", { type: "image/jpeg" });
+    setSelectedFile(file);
+
+    // Create preview
+    const previewUrl = URL.createObjectURL(croppedBlob);
+    setImagePreview(previewUrl);
+
+    setShowCropper(false);
+    setTempImageSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setTempImageSrc(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -149,22 +178,22 @@ export default function MyItems() {
   // Filter and sort items
   const filteredAndSortedItems = useMemo(() => {
     if (!items) return [];
-    
+
     // Filter by status
     let filtered = items;
     if (statusFilter !== "all") {
       filtered = items.filter(item => item.status === statusFilter);
     }
-    
+
     // Sort: all statuses except SOLD first, then SOLD items last
     return [...filtered].sort((a, b) => {
       const aIsSold = a.status === ItemStatus.SOLD;
       const bIsSold = b.status === ItemStatus.SOLD;
-      
+
       // If one is sold and the other isn't, sold goes last
       if (aIsSold && !bIsSold) return 1;
       if (!aIsSold && bIsSold) return -1;
-      
+
       // If both have same sold status, maintain original order (by creation date, newest first)
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
@@ -188,9 +217,21 @@ export default function MyItems() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg text-muted-foreground">Loading your items...</p>
-        </div>
+        <main className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <div className="h-9 w-48 bg-muted/30 rounded animate-pulse mb-2" />
+              <div className="h-5 w-32 bg-muted/30 rounded animate-pulse" />
+            </div>
+            <div className="h-10 w-32 bg-muted/30 rounded animate-pulse" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, index) => (
+              <ListingCardSkeleton key={index} />
+            ))}
+          </div>
+        </main>
       </div>
     );
   }
@@ -408,14 +449,20 @@ export default function MyItems() {
 
         {/* Display items */}
         {items && items.length === 0 ? (
-          <div className="text-center py-16 bg-card rounded-lg border border-border">
-            <p className="text-xl text-muted-foreground mb-4">You haven't created any listings yet</p>
-            <Button onClick={() => setOpen(true)}>Create Your First Listing</Button>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="No listings yet"
+            description="You haven't created any listings yet. Start selling your items today!"
+            actionLabel="Create Your First Listing"
+            onAction={() => setOpen(true)}
+          />
         ) : filteredAndSortedItems.length === 0 ? (
-          <div className="text-center py-16 bg-card rounded-lg border border-border">
-            <p className="text-xl text-muted-foreground mb-4">No items found with the selected filter</p>
-          </div>
+          <EmptyState
+            title="No items found"
+            description="No items found with the selected filter."
+            actionLabel="Clear Filters"
+            onAction={() => setStatusFilter("all")}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredAndSortedItems.map((item) => (
@@ -424,6 +471,13 @@ export default function MyItems() {
           </div>
         )}
       </main>
-    </div>
+
+      <ImageCropper
+        open={showCropper}
+        imageSrc={tempImageSrc}
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+      />
+    </div >
   );
 }

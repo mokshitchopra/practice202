@@ -3,7 +3,7 @@ AWS S3 client for file uploads and management
 """
 
 import boto3
-import magic
+# import magic
 from botocore.exceptions import ClientError, NoCredentialsError
 from fastapi import HTTPException, UploadFile
 from typing import Optional

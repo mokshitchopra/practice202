@@ -1,11 +1,19 @@
-# Wireframes
+# Frontend Wireframes & Design Goals
 
-This folder contains wireframes organized by user role.
+## Design Inspiration
+The primary design inspiration for the Campus Marketplace is **Airbnb**.
 
-## Folders
-- `seller/` - Seller role screens
-- `buyer/` - Buyer role screens
-- `admin/` - Admin role screens
-- `common/` - Shared screens
+### Key Aesthetic Features
+-   **Minimalistic**: Clean white backgrounds, subtle shadows, and ample whitespace.
+-   **Typography**: Clean sans-serif fonts (e.g., Inter, Roboto).
+-   **Color Palette**:
+    -   Primary: SJSU Blue (instead of Airbnb Red) but used sparingly.
+    -   Accent: SJSU Gold.
+    -   Backgrounds: White / Light Gray.
+-   **Components**:
+    -   **Navbar**: Centered search bar with rounded pill shape and shadow.
+    -   **Cards**: Rounded corners, large images, subtle hover lift.
+    -   **Filters**: Horizontal scrollable icon strip.
 
-*Wireframes will be added here*
+## Wireframes
+(Placeholder for wireframe images - see `design/wireframes` folder structure)

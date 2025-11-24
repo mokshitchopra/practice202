@@ -41,12 +41,12 @@ const Navbar = () => {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-2.5 hover:opacity-80 transition-opacity duration-200">
-              <img 
-                src={sjsuLogo} 
-                alt="SJSU Logo" 
+              <img
+                src={sjsuLogo}
+                alt="SJSU Logo"
                 className="w-8 h-8"
               />
-              <span className="font-semibold text-lg text-foreground hidden sm:inline">Spartan Marketplace</span>
+              <span className="font-extrabold text-xl text-primary hidden sm:inline tracking-tight">Spartan Marketplace</span>
             </Link>
 
             <div className="flex items-center gap-1">
@@ -59,8 +59,8 @@ const Navbar = () => {
                         size="sm"
                         className={cn(
                           "flex items-center gap-1.5 rounded-full px-4 h-9 text-sm font-normal",
-                          isActive(item.path) 
-                            ? "bg-primary text-primary-foreground" 
+                          isActive(item.path)
+                            ? "bg-primary text-primary-foreground"
                             : "hover:bg-muted/50"
                         )}
                       >

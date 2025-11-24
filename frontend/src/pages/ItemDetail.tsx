@@ -14,6 +14,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -242,9 +244,34 @@ export default function ItemDetail() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg text-muted-foreground">Loading item...</p>
-        </div>
+        <main className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="mb-6">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="lg:col-span-2 space-y-8">
+              <Skeleton className="w-full aspect-[4/3] rounded-2xl" />
+              <div className="space-y-4">
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-px w-full my-8" />
+                <div className="space-y-2">
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-1">
+              <Skeleton className="h-[400px] w-full rounded-xl" />
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
@@ -274,134 +301,177 @@ export default function ItemDetail() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <Link to="/">
-          <Button variant="ghost" className="mb-4">
+        {/* Breadcrumb / Back Button */}
+        <div className="mb-6">
+          <Link to="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             ← Back to listings
-          </Button>
-        </Link>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            {item.item_url ? (
-              <>
-                <img
-                  src={item.item_url}
-                  alt={item.title}
-                  className="w-full rounded-lg border border-border cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setLightboxOpen(true)}
-                />
-                <ImageLightbox
-                  imageUrl={item.item_url}
-                  isOpen={lightboxOpen}
-                  onClose={() => setLightboxOpen(false)}
-                />
-              </>
-            ) : (
-              <div className="w-full aspect-square bg-muted rounded-lg border border-border flex items-center justify-center text-muted-foreground">
-                No image available
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-4">{item.title}</h1>
-            <div className="text-3xl font-bold text-primary mb-6">${item.price.toFixed(2)}</div>
-
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">Status:</span>
-                <Badge variant={item.status === "available" ? "default" : "secondary"}>
-                  {item.status}
-                </Badge>
-              </div>
-
-              <div>
-                <span className="font-semibold">Category:</span>{" "}
-                {formatCategory(item.category)}
-              </div>
-
-              <div>
-                <span className="font-semibold">Condition:</span>{" "}
-                {formatCondition(item.condition)}
-              </div>
-
-              {item.location && (
-                <div>
-                  <span className="font-semibold">Location:</span> {item.location}
-                </div>
-              )}
-
-              <div>
-                <span className="font-semibold">Negotiable:</span> {item.is_negotiable ? "Yes" : "No"}
-              </div>
-
-              <div className="text-sm text-muted-foreground">
-                <span className="font-semibold">Listed:</span> {format(new Date(item.created_at), "MMM d, yyyy")}
-              </div>
-            </div>
-
-            {canEdit && (
-              <div className="space-y-2 mb-6">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setStatusDialogOpen(true)}
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Modify Status
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setEditDialogOpen(true)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Listing
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="w-full justify-start"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Listing
-                </Button>
-              </div>
-            )}
-
-            {!canEdit && authStore.isAuthenticated && (
-              <Button className="w-full" size="lg">
-                Contact Seller
-              </Button>
-            )}
-
-            {!authStore.isAuthenticated && !canEdit && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-lg">Want to contact the seller?</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Please log in to contact the seller about this item.
-                  </p>
-                  <Link to="/login">
-                    <Button>Login</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          </Link>
         </div>
 
-        <div className="mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-foreground whitespace-pre-wrap leading-relaxed">{item.description}</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Left Column: Image & Details */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Hero Image */}
+            <div className="rounded-2xl overflow-hidden border border-border/40 shadow-sm bg-muted/10 aspect-[4/3] relative group">
+              {item.item_url ? (
+                <>
+                  <img
+                    src={item.item_url}
+                    alt={item.title}
+                    className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-500 ease-out"
+                    onClick={() => setLightboxOpen(true)}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 pointer-events-none" />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    onClick={() => setLightboxOpen(true)}
+                  >
+                    View Fullscreen
+                  </Button>
+                  <ImageLightbox
+                    imageUrl={item.item_url}
+                    isOpen={lightboxOpen}
+                    onClose={() => setLightboxOpen(false)}
+                  />
+                </>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-2">
+                    <span className="text-2xl">📷</span>
+                  </div>
+                  <p>No image available</p>
+                </div>
+              )}
+            </div>
+
+            {/* Title & Basic Info */}
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">{item.title}</h1>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>{item.location || "Campus Pickup"}</span>
+                    <span>•</span>
+                    <span>{format(new Date(item.created_at), "MMM d, yyyy")}</span>
+                  </div>
+                </div>
+                {/* Share/Save buttons could go here */}
+              </div>
+
+              <div className="flex flex-wrap gap-2 mb-6">
+                <Badge variant="secondary" className="px-3 py-1 text-sm font-normal">
+                  {formatCategory(item.category)}
+                </Badge>
+                <Badge variant="outline" className="px-3 py-1 text-sm font-normal">
+                  {formatCondition(item.condition)}
+                </Badge>
+                {item.is_negotiable && (
+                  <Badge variant="outline" className="px-3 py-1 text-sm font-normal border-green-200 text-green-700 bg-green-50 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900">
+                    Negotiable
+                  </Badge>
+                )}
+              </div>
+
+              <Separator className="my-8" />
+
+              {/* Description */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4">About this item</h3>
+                <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed text-lg">
+                  {item.description}
+                </p>
+              </div>
+
+              <Separator className="my-8" />
+
+              {/* Seller Info Placeholder */}
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Seller Information</h3>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                    S
+                  </div>
+                  <div>
+                    <p className="font-medium">Spartan Seller</p>
+                    <p className="text-sm text-muted-foreground">Joined in 2024</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Sticky Action Card */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <Card className="shadow-elegant border-border/40 overflow-hidden">
+                <CardHeader className="pb-4 border-b border-border/40 bg-muted/20">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">Price</p>
+                      <div className="text-3xl font-bold text-foreground">
+                        ${item.price.toFixed(2)}
+                      </div>
+                    </div>
+                    <Badge variant={item.status === "available" ? "default" : "secondary"} className="mb-1">
+                      {item.status === "available" ? "Available" : item.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                  {canEdit ? (
+                    <div className="space-y-3">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start h-11"
+                        onClick={() => setStatusDialogOpen(true)}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Modify Status
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start h-11"
+                        onClick={() => setEditDialogOpen(true)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Listing
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        className="w-full justify-start h-11"
+                        onClick={() => setDeleteDialogOpen(true)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Listing
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {authStore.isAuthenticated ? (
+                        <Button className="w-full h-12 text-lg shadow-md hover:shadow-lg transition-all" size="lg">
+                          Contact Seller
+                        </Button>
+                      ) : (
+                        <div className="text-center space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Log in to contact the seller and make an offer.
+                          </p>
+                          <Link to="/login" className="block">
+                            <Button className="w-full h-11">Log in to Contact</Button>
+                          </Link>
+                        </div>
+                      )}
+                      <p className="text-xs text-center text-muted-foreground">
+                        Safety Tip: Meet in a public place on campus.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </main>
 
